@@ -1,5 +1,66 @@
 //treeGun.cs
 
+//audio
+datablock AudioProfile(treeGunShotSound)
+{
+   filename    = "./treeGunBulletHit.wav";
+   description = AudioClose3d;
+   preload = true;
+};
+
+datablock AudioProfile(treeGunBulletHitSound)
+{
+   filename    = "./treeGunBulletHit.wav";
+   description = AudioClose3d;
+   preload = true;
+};
+
+//shell
+datablock DebrisData(treeGunShellDebris)
+{
+    shapeFile = "./treeGunShell.dts";
+    lifetime = 2.0;
+    minSpinSpeed = -400.0;
+    maxSpinSpeed = 200.0;
+    elasticity = 0.5;
+    friction = 0.2;
+    numBounces = 3;
+    staticOnMaxBounce = true;
+    snapOnMaxBounce = false;
+    fade = true;
+
+    gravModifier = 2;
+};
+
+datablock ExplosionData(treeGunExplosion)
+{
+   //explosionShape = "";
+    soundProfile = treeGunBulletHitSound;
+
+    lifeTimeMS = 150;
+
+    particleEmitter = gunExplosionEmitter;
+    particleDensity = 5;
+    particleRadius = 0.2;
+
+    emitter[0] = gunExplosionRingEmitter;
+
+    faceViewer     = true;
+    explosionScale = "1 1 1";
+
+    shakeCamera = false;
+    camShakeFreq = "10.0 11.0 10.0";
+    camShakeAmp = "1.0 1.0 1.0";
+    camShakeDuration = 0.5;
+    camShakeRadius = 10.0;
+
+    // Dynamic light
+    lightStartRadius = 2;
+    lightEndRadius = 2;
+    lightStartColor = "0.5 0.8 0.9";
+    lightEndColor = "0 0 0";
+};
+
 datablock ProjectileData(treeGunProjectile)
 {
     projectileShapeName = "./bullet.dts";
@@ -15,7 +76,7 @@ datablock ProjectileData(treeGunProjectile)
 
     impactImpulse	     = 400;
     verticalImpulse	  = 400;
-    explosion           = gunExplosion;
+    explosion           = treeGunExplosion;
     particleEmitter     = ""; //bulletTrailEmitter;
 
     muzzleVelocity      = 200;
@@ -96,7 +157,7 @@ datablock ShapeBaseImageData(treeGunImage)
    projectile = treeGunProjectile;
    projectileType = Projectile;
 
-	casing = gunShellDebris;
+	casing = treeGunShellDebris;
 	shellExitDir        = "1.0 -1.3 1.0";
 	shellExitOffset     = "0 0 0";
 	shellExitVariance   = 15.0;	
@@ -122,40 +183,39 @@ datablock ShapeBaseImageData(treeGunImage)
    // Initial start up state
 	stateName[0]                     = "Activate";
 	stateTimeoutValue[0]             = 0.15;
-	stateTransitionOnTimeout[0]       = "Ready";
-	stateSound[0]					= weaponSwitchSound;
+	stateTransitionOnTimeout[0]      = "Ready";
+	stateSound[0]					 = weaponSwitchSound;
 
 	stateName[1]                     = "Ready";
 	stateTransitionOnTriggerDown[1]  = "Fire";
 	stateAllowImageChange[1]         = true;
-	stateSequence[1]	= "Ready";
+	stateSequence[1]	             = "Ready";
 
-	stateName[2]                    = "Fire";
-	stateTransitionOnTimeout[2]     = "Smoke";
-	stateTimeoutValue[2]            = 0.01;
-	stateFire[2]                    = true;
-	stateAllowImageChange[2]        = false;
-	stateSequence[2]                = "Fire";
-	stateScript[2]                  = "onFire";
-	stateWaitForTimeout[2]			= true;
-	stateEmitter[2]					= gunFlashEmitter;
-	stateEmitterTime[2]				= 0.05;
-	stateEmitterNode[2]				= "muzzleNode";
-	stateSound[2]					= gunShot1Sound;
-	stateEjectShell[2]       = true;
+	stateName[2]                     = "Fire";
+	stateTransitionOnTimeout[2]      = "Smoke";
+	stateTimeoutValue[2]             = 0.01;
+	stateFire[2]                     = true;
+	stateAllowImageChange[2]         = false;
+	stateSequence[2]                 = "Fire";
+	stateScript[2]                   = "onFire";
+	stateWaitForTimeout[2]			 = true;
+	stateEmitter[2]					 = gunFlashEmitter;
+	stateEmitterTime[2]				 = 0.05;
+	stateEmitterNode[2]				 = "muzzleNode";
+	stateSound[2]					 = treeGunShotSound;
+	stateEjectShell[2]               = true;
 
 	stateName[3] = "Smoke";
-	stateEmitter[3]					= gunSmokeEmitter;
-	stateEmitterTime[3]				= 0.05;
-	stateEmitterNode[3]				= "muzzleNode";
-	stateTimeoutValue[3]            = 0.01;
-	stateTransitionOnTimeout[3]     = "Reload";
+	stateEmitter[3]					 = gunSmokeEmitter;
+	stateEmitterTime[3]				 = 0.05;
+	stateEmitterNode[3]				 = "muzzleNode";
+	stateTimeoutValue[3]             = 0.01;
+	stateTransitionOnTimeout[3]      = "Reload";
 
-	stateName[4]			= "Reload";
-	stateSequence[4]                = "Reload";
-	stateTransitionOnTriggerUp[4]     = "Ready";
-	stateSequence[4]	= "Ready";
-
+	stateName[4]			         = "Reload";
+	stateSequence[4]                 = "Reload";
+	stateTransitionOnTriggerUp[4]    = "Ready";
+	stateSequence[4]	             = "Ready";
 };
 
 function treeGunImage::onFire(%this,%obj,%slot)
@@ -165,123 +225,121 @@ function treeGunImage::onFire(%this,%obj,%slot)
 	Parent::onFire(%this,%obj,%slot);	
 }
 
-package ServerRPG
+
+function treeGunProjectile::onCollision(%this, %obj, %col, %fade, %pos, %normal, %velocity)
 {
-    function treeGunProjectile::onCollision(%this, %obj, %col, %fade, %pos, %normal, %velocity)
+    if(%col.getClassName() $= "fxDTSBrick")
     {
-        if(%col.getClassName() $= "fxDTSBrick")
+        //Get client
+        %client = %obj.client;
+
+
+        if(%client.isAdmin)
         {
-            //Get client
-            %client = %obj.client;
+            //Tree details
+            %trunkColorID = getRandom(59, 61);
+            %leafColorID = $RPG::treeColor[getRandom(0,10)];
+            %pinkColorID = 10;
+            %angleID = getRandom(0,3);
+            %isDeadTreeChance = getRandom(0,100);
+            %isDead = false;
+            %trunkDatablock = $RPG::treeTrunk[getRandom(0,2)];
+            %leafID = getRandom(0,7);
+            %leafDatablock = $RPG::treeLeafs[%leafID];
 
-            if(%client.isAdmin)
+            %pinkHeight = 1;
+            switch(%leafID)
             {
-                //Tree details
-                %trunkColorID = getRandom(59, 61);
-                %leafColorID = $RPG::treeColor[getRandom(0,10)];
-                %pinkColorID = 10;
-                %angleID = getRandom(0,3);
-                %isDeadTreeChance = getRandom(0,100);
-                %isDead = false;
-                %trunkDatablock = $RPG::treeTrunk[getRandom(0,2)];
-                %leafID = getRandom(0,7);
-                %leafDatablock = $RPG::treeLeafs[%leafID];
+                case 0:
+                    %pinkHeight = 5;
+                case 1:
+                    %pinkHeight = 5;
+                case 2:
+                    %pinkHeight = 5;
+                case 3:
+                    %pinkHeight = 5;
+                case 4:
+                    %pinkHeight = 7;
+                case 5:
+                    %pinkHeight = 5;
+                case 6:
+                    %pinkHeight = 6;
+                case 7:
+                    %pinkHeight = 6;
+            }
 
-                %pinkHeight = 1;
-                switch(%leafID)
+            //Is it a dead tree?
+            if(%isDeadTreeChance > 80)
+                %isDead = true;
+
+            %validModTer = false;
+            %isRamp = true;
+            for(%i = 0; %i < 9 && !%validModTer; %i++)
+            {
+                if(%col.getDatablock().getName() $= $RPG::validModTer[%i])
                 {
-                    case 0:
-                        %pinkHeight = 5;
-                    case 1:
-                        %pinkHeight = 5;
-                    case 2:
-                        %pinkHeight = 5;
-                    case 3:
-                        %pinkHeight = 5;
-                    case 4:
-                        %pinkHeight = 7;
-                    case 5:
-                        %pinkHeight = 5;
-                    case 6:
-                        %pinkHeight = 6;
-                    case 7:
-                        %pinkHeight = 6;
+                    %validModTer = true;
+                    if(%i == 0 || %i == 1 || %i == 8)
+                        %isRamp = false;
                 }
+            }
 
-                //Is it a dead tree?
-                if(%isDeadTreeChance > 80)
-                    %isDead = true;
-
-                %validModTer = false;
-                %isRamp = true;
-                for(%i = 0; %i < 9 && !%validModTer; %i++)
+            if(%validModTer)
+            {
+                //Check tree overlap
+                %adjustPos = "0 0 " @ %trunkDatablock.brickSizeZ * 0.1;
+                if(%isRamp)
                 {
-                    if(%col.getDatablock().getName() $= $RPG::validModTer[%i])
-                    {
-                        %validModTer = true;
-                        if(%i == 0 || %i == 1 || %i == 8)
-                            %isRamp = false;
-                    }
+                    %adjustPos = "0 0 " @ %trunkDatablock.brickSizeZ * 0.1 - 1;
+                    %px = getWord(%pos, 0);
+                    %py = getWord(%pos, 1);
+                    %pz = getWord(%pos, 2);
+
+                    %pz = mFloor(%pz*10);
+                    if(%pz & 1)
+                        %pz-=1;
+                    %pz/=10;
+                    %pos = %px SPC %py SPC %pz;
                 }
+                
+                %newPos = vectorAdd(%pos, %adjustPos);
 
-                if(%validModTer)
+                %newBrick = createBrick(%client, %trunkDatablock, %newPos, %trunkColorID, %angleID);
+                %err = getField(%newBrick, 1);
+                %brick = getField(%newBrick, 0);
+                if(%err == 0 || %err == 2)
                 {
-                    //Check tree overlap
-                    %adjustPos = "0 0 " @ %trunkDatablock.brickSizeZ * 0.1;
-                    if(%isRamp)
-                    {
-                        %adjustPos = "0 0 " @ %trunkDatablock.brickSizeZ * 0.1 - 1;
-                        %px = getWord(%pos, 0);
-                        %py = getWord(%pos, 1);
-                        %pz = getWord(%pos, 2);
-
-                        %pz = mFloor(%pz*10);
-                        if(%pz & 1)
-                            %pz-=1;
-                        %pz/=10;
-                        %pos = %px SPC %py SPC %pz;
-                    }
-                    
-                    %newPos = vectorAdd(%pos, %adjustPos);
-
-                    %newBrick = createBrick(%client, %trunkDatablock, %newPos, %trunkColorID, %angleID);
+                    %brickList = %brick;
+                    %newPos = vectorAdd(%newPos, "0 0 " @ %trunkDatablock.brickSizeZ * 0.1);
+                    %newBrick = createBrick(%client, %leafDatablock, %newPos, %leafColorID, %angleID);
                     %err = getField(%newBrick, 1);
                     %brick = getField(%newBrick, 0);
                     if(%err == 0 || %err == 2)
+                        %brickList = %brickList SPC %brick;
+                    else
+                        %brick.delete();
+
+                    %newPos = vectorAdd(%newPos, "0 0 " @ -0.8);
+                    for(%i = 0; %i < %pinkHeight; %i++)
                     {
-                        %brickList = %brick;
-                        %newPos = vectorAdd(%newPos, "0 0 " @ %trunkDatablock.brickSizeZ * 0.1);
-                        %newBrick = createBrick(%client, %leafDatablock, %newPos, %leafColorID, %angleID);
+                        %newPos = vectorAdd(%newPos, "0 0 " @ brick4xCubeData.brickSizeZ * 0.2);
+                        %newBrick = createBrick(%client, "brick4xCubeData", %newPos, 10, 0);
                         %err = getField(%newBrick, 1);
                         %brick = getField(%newBrick, 0);
+                        %brick.setRendering(0);
+
                         if(%err == 0 || %err == 2)
                             %brickList = %brickList SPC %brick;
                         else
                             %brick.delete();
-
-                        %newPos = vectorAdd(%newPos, "0 0 " @ -0.8);
-                        for(%i = 0; %i < %pinkHeight; %i++)
-                        {
-                            %newPos = vectorAdd(%newPos, "0 0 " @ brick4xCubeData.brickSizeZ * 0.2);
-                            %newBrick = createBrick(%client, "brick4xCubeData", %newPos, 10, 0);
-                            %err = getField(%newBrick, 1);
-                            %brick = getField(%newBrick, 0);
-                            %brick.setRendering(0);
-
-                            if(%err == 0 || %err == 2)
-                                %brickList = %brickList SPC %brick;
-                            else
-                                %brick.delete();
-                        }
-
-                        if(isObject(%brick))
-                            %client.undoStack.push(0 TAB "GROUP_PLANT" TAB %brickList);
                     }
-                    else
-                        %brick.delete();                    
+
+                    if(isObject(%brick))
+                        %client.undoStack.push(0 TAB "GROUP_PLANT" TAB %brickList);
                 }
-            }  
-        }
-        return parent::onCollision(%this, %obj, %col, %fade, %pos, %normal, %velocity);
+                else
+                    %brick.delete();                    
+            }
+        }  
     }
-};
+}
